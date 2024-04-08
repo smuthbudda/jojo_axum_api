@@ -1,7 +1,11 @@
-use axum::{routing::{get, Route}, Router};
+#![allow(dead_code)]
+use axum::Router;
 
-use crate::controllers::users;
+use crate::controllers::users::user_routes;
 
-pub fn get_routes() -> Router{
-    Router::new().nest("user", users::user_routes())   
+
+pub fn create_router() -> Router{
+    Router::new().nest("/users", user_routes())
 }
+
+
