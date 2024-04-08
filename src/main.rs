@@ -1,25 +1,21 @@
-use std::time::Duration;
+use std::env;
+use axum::{
+    routing::get,
+    Router,
+};
 
-use sea_orm::{ConnectOptions, Database};
+mod controllers;
 
-fn main() {
-    println!("Hello, world!");
+#[tokio::main]
+async fn main() {
+    dotenvy::dotenv().expect("Unable to access .env file");
+    let _database_url = env::var("DATABASE_URL").expect("Database URL");
+    let server_address = std::env::var("SERVER_ADDRESS").unwrap_or("127.0.0.1:3000".to_owned());
+    // build our application with a single route
+    let app = controllers::routes::get_routes();
 
-    
+    // run our app with hyper, listening globally on port 3000
+    let listener = tokio::net::TcpListener::bind(server_address).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
-
-async fn database_connection(){
-    let mut opt = ConnectOptions::new("postgres://postgres:145269@192.168.1.114:5432/rust_seaorm");
-    opt.max_connections(100)
-        .min_connections(5)
-        .connect_timeout(Duration::from_secs(8))
-        .acquire_timeout(Duration::from_secs(8))
-        .idle_timeout(Duration::from_secs(8))
-        .max_lifetime(Duration::from_secs(8))
-        .sqlx_logging(true)
-        .sqlx_logging_level(log::LevelFilter::Info)
-        .set_schema_search_path("my_schema"); // Setting default PostgreSQL schema
-
-    let db = Database::connect(opt).await?;
-}
