@@ -17,7 +17,7 @@ impl User {
 }
 
 
-pub async fn get_users() -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+pub async fn get_users_handler() -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
 
     let users = vec![
         User::create_user(
@@ -42,5 +42,5 @@ pub async fn get_users() -> Result<impl IntoResponse, (StatusCode, Json<serde_js
 }
 
 pub fn user_routes() -> Router {
-    Router::new().route("/list", get(get_users))
+    Router::new().route("/list", get(get_users_handler))
 }
