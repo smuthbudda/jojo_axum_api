@@ -1,6 +1,7 @@
-use axum::{Json, Router, response::IntoResponse, http::StatusCode, routing::get};
-
+use axum::{Json, response::IntoResponse, http::StatusCode};
 use serde_derive::{Deserialize, Serialize};
+use sqlx::PgPool;
+
 
 #[derive(Debug, Deserialize, Serialize)]
 #[allow(non_snake_case)]
@@ -17,7 +18,7 @@ impl User {
 }
 
 
-pub async fn get_users() -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+pub async fn get_users_handler(axum::extract::State(_pool): axum::extract::State<PgPool>) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
 
     let users = vec![
         User::create_user(
@@ -39,8 +40,4 @@ pub async fn get_users() -> Result<impl IntoResponse, (StatusCode, Json<serde_js
     });
 
     Ok(Json(json_response))
-}
-
-pub fn user_routes() -> Router {
-    Router::new().route("/list", get(get_users))
 }
