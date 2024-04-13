@@ -4,3 +4,9 @@ GET http://localhost:7878/
 
 ###
 GET http://localhost:7878/api/user/all
+
+###
+GET http://localhost:7878/api/health-check/check
+
+###
+GET http://localhost:7878/api/world-aths/read

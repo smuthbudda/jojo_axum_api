@@ -40,11 +40,4 @@ pub async fn get_users_handler(axum::extract::State(_pool): axum::extract::State
     });
 
     Ok(Json(json_response))
-<<<<<<< HEAD
-=======
-}
-
-pub fn user_routes() -> Router {
-    Router::new().route("/list", get(get_users_handler))
->>>>>>> a8456ca8f3046189e48ba02e849a2a06e08b6ab3
 }

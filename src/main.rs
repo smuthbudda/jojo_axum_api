@@ -2,13 +2,14 @@
 use std::env;
 
 use axum::{
-    extract::State, http::{header::CONTENT_TYPE, status, Method, StatusCode}, response::{Html, IntoResponse}, routing::get, Router
+    http::{header::CONTENT_TYPE, Method}, routing::get, Router
 };
-use sqlx::{PgPool, Pool, Postgres};
+use sqlx::{Pool, Postgres};
 use tower_http::cors::{Any, CorsLayer};
 mod pages;
 mod controllers;
 mod db;
+mod db_models;
 
 #[tokio::main]
 async fn main() {
@@ -29,15 +30,10 @@ async fn main() {
     let app = Router::new()
         .route("/", get(pages::index::root))
         .nest("/api", controllers::routes::api_routes())
-        // .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(connection_pool)
         .layer(cors);
 
     let listener = tokio::net::TcpListener::bind(server_address).await.unwrap();
 
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn index() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
 }

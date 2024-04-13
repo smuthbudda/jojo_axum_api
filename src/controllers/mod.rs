@@ -1,3 +1,4 @@
 pub mod routes;
 mod users;
-mod default;
+mod health_check;
+mod iaaf_points;

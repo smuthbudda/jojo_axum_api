@@ -1,5 +1,0 @@
-CREATE TABLE IF NOT EXISTS todo (
-    id SERIAL PRIMARY KEY NOT NULL,
-    text VARCHAR(255) NOT NULL,
-    done BOOLEAN default false NOT NULL
-);

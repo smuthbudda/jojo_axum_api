@@ -1,18 +1,18 @@
 use askama::Template;
 use axum::{
     http::StatusCode,
-    response::{Html, IntoResponse},
-    routing::get,
-    Router,
+    response::{Html, IntoResponse}
 };
+use sqlx::PgPool;
 
 #[derive(Template)]
 #[template(path = "index.html")]
-struct RootTemplate {
+struct IndexTemplate {
     title: &'static str,
 }
 
-pub async fn root() -> impl IntoResponse {
-    let root = RootTemplate { title: "title" };
-    (StatusCode::OK, Html(root.render().unwrap()))
+pub async fn root(axum::extract::State(_pool): axum::extract::State<PgPool>) -> impl IntoResponse {
+    let index = IndexTemplate { title: "title" };
+    // sqlx::query_as!(IndexTemplate)
+    (StatusCode::OK, Html(index.render().unwrap()))
 }
