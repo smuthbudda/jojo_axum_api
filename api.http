@@ -1,6 +1,6 @@
 
 ###Default
-GET http://localhost:7878/
+GET http://localhost:7878/pages/points
 
 ###
 GET http://localhost:7878/api/user/all
@@ -10,3 +10,9 @@ GET http://localhost:7878/api/health-check/check
 
 ###
 GET http://localhost:7878/api/world-aths/read
+
+###
+GET http://localhost:7878/api/world-aths/points/Outdoor/Male/200m?mark=21.93
+
+###
+GET http://localhost:7878/api/world-aths/points/Outdoor/Male/200m?points=1400

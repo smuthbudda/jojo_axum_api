@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Athletics points lookup in htmx</title>
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <script src="/assets/js/htmx.org@1.9.5_dist_htmx.min.js"></script>
+    <script src="/assets/js/hyperscript.org@0.9.11_dist__hyperscript.min.js"></script>
+    <script src="/assets/js/fontawesome.js"></script>
+    <!-- <script src="https://kit.fontawesome.com/f4845cfa75.js" crossorigin="anonymous"></script> -->
+</head>
+
+<body>
+
+    <main class="flex flex-row justify-center w-full">
+        <div class="flex flex-col justify-center gap-10 w-full">
+            <div class="flex flex-col items-center gap-3 bg-zinc-100 p-10 rounded-lg">
+                <h1 class="text-5xl font-bold pb-5">Athletics Lookup</h1>
+            </div>
+
+            <div class="flex flex-row justify-left w-full">
+                <form hx-post="http://localhost:7878/api/world-aths/points/{select1}/{select2}/{select3}"
+                    hx-trigger="submit">
+                    <label for="select1">Category:</label>
+                    <select id="select1" name="select1">
+                        <option value="Outdoor">Outdoor</option>
+                        <option value="Indoor">Indoor</option>
+                    </select>
+                    <label for="select2">Gender:</label>
+                    <select id="select2" name="select2">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                    <label for="select3">Event:</label>
+                    <select id="select3" name="select3">
+                        <option value="200m">200m</option>
+                        <option value="100m">100m</option>
+                        <!-- Add more options as needed -->
+                    </select>
+                    <label for="mark">Mark:</label>
+                    <input type="text" id="mark" name="mark" value="21.93">
+                    <button type="submit">Submit</button>
+                </form>
+                
+                <ul class="flex flex-col items-center divide-y w-full" id="points_list">
+                    {% for point in points_list %}
+                    {{ point|safe }}
+                    {% endfor %}
+                </ul>
+            </div>
+
+        </div>
+    </main>
+
+</body>
+
+</html>

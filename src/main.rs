@@ -2,7 +2,7 @@
 use std::env;
 
 use axum::{
-    http::{header::CONTENT_TYPE, Method}, routing::get, Router
+    http::{header::CONTENT_TYPE, Method}, Router
 };
 use sqlx::{Pool, Postgres};
 use tower_http::cors::{Any, CorsLayer};
@@ -28,12 +28,12 @@ async fn main() {
         .allow_headers([CONTENT_TYPE]);
 
     let app = Router::new()
-        .route("/", get(pages::index::root))
+        .nest("/pages", pages::pagerouter::page_routes())
         .nest("/api", controllers::routes::api_routes())
         .with_state(connection_pool)
         .layer(cors);
 
     let listener = tokio::net::TcpListener::bind(server_address).await.unwrap();
-
+    println!("✅ API is being served!");
     axum::serve(listener, app).await.unwrap();
 }

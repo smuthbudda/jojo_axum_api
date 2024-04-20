@@ -4,7 +4,7 @@ use sqlx::PgPool;
 
 use crate::controllers::users;
 
-use super::{health_check::health_check, iaaf_points::read_iaaf_json};
+use super::{health_check::health_check, iaaf_points::read_iaaf_json, iaaf_points::get_value};
 
 
 pub fn api_routes() -> Router<PgPool> {
@@ -14,7 +14,9 @@ pub fn api_routes() -> Router<PgPool> {
     let health_check_routes = Router::new()
         .route("/check", get(health_check));
 
-    let points_routes = Router::new().route("/read", get(read_iaaf_json));
+    let points_routes = Router::new()
+        .route("/read", get(read_iaaf_json))
+        .route("/points/:category/:gender/:event", get(get_value));
 
     Router::new()
         .nest("/user", user_routes)

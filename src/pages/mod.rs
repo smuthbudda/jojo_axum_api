@@ -1,1 +1,2 @@
-pub mod index;
+pub mod pointspage;
+pub mod pagerouter;

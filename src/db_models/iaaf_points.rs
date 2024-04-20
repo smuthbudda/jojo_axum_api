@@ -1,37 +1,75 @@
 #![allow(dead_code)]
 
-use serde::Deserialize;
+use std::{fmt, str::FromStr};
 
-#[derive(Default, Debug, Clone, PartialEq, serde::Serialize, Deserialize)]
+use serde::{de, Deserialize, Deserializer, Serialize};
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 #[serde(rename_all = "PascalCase")]
 pub struct Points {
-    pub points: i16,
+    pub points: i32,
     pub gender: String,
     pub category: String,
     pub event: String,
-    pub mark: f32,
-    pub mark_time: String,
+    pub mark: f64,
 }
 
-impl Points{
-    
-    pub fn new (points: i16, gender: String, category:String,
-         event: String, mark: f32, mark_time: String) -> Self{
-        Self{points, gender, category,
-            event, mark, mark_time}
+impl Points {
+    pub fn new(points: i32, gender: String, category: String, event: String, mark: f64) -> Self {
+        Self {
+            points,
+            gender,
+            category,
+            event,
+            mark,
+        }
+    }
+}
+impl fmt::Display for Points {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 
-pub fn read_from_file() -> Vec<Points>{
-    println!("Reading json file.");
-    let file_path = "data/WorldAthletics.json";
-    let file = std::fs::File::open(file_path).expect("Could not open file");
-    let points:Vec<Points> = serde_json::from_reader(file).expect("error reading from file");
-
-    return points
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PointsSearchQueryParams {
+    #[serde(default, deserialize_with = "empty_string_as_none")]
+    pub points: Option<i32>,
+    #[serde(default, deserialize_with = "empty_string_as_none")]
+    pub mark: Option<f64>,
 }
 
-pub enum Category{
+fn empty_string_as_none<'de, D, T>(de: D) -> Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: FromStr,
+    T::Err: fmt::Display,
+{
+    let opt = Option::<String>::deserialize(de)?;
+    match opt.as_deref() {
+        None | Some("") => Ok(None),
+        Some(s) => FromStr::from_str(s).map_err(de::Error::custom).map(Some),
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum Gender {
+    Male,
+    Female,
+}
+impl fmt::Display for Gender {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum Category {
     Indoor,
-    Outdoor
+    Outdoor,
+}
+impl fmt::Display for Category {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
