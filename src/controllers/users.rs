@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{db_models::user::User, req_models::user_req::{CreateUserRequest, UserResponse}};
+use crate::req_models::user_req::{CreateUserRequest, UserResponse};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[allow(non_snake_case)]
@@ -105,7 +105,7 @@ pub async fn login_handler(
     })?;
 
     if user.is_none() {
-        return Ok(Json(serde_json::json!({"status":"No match found"})));
+        return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"status":"Error user not found."}))));
     }
 
     let user = user.unwrap();
@@ -126,7 +126,7 @@ pub async fn login_handler(
             });
             Ok(Json(serde_json::json!(json_response)))
         }
-        false => Result::Ok(Json(serde_json::json!({"status":"Invalid Password"}))),
+        false => Result::Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"status":"Invalid Password"})))),
     }
 }
 

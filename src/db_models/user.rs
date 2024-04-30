@@ -1,12 +1,8 @@
-use std::collections::HashMap;
-use axum::async_trait;
-use axum_login::{AuthnBackend, UserId};
-use serde::{Deserialize, Serialize};
-use sqlx::{types::Uuid, PgPool};
+
 
 #[derive(Default, Debug, Clone, PartialEq, sqlx::FromRow, Eq)]
 pub struct User {
-    id: Uuid,
+    id: uuid::Uuid,
     pub first_name: String,
     pub last_name: String,
     pub user_name: String,

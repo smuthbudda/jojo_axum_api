@@ -1,6 +1,5 @@
-use crate::db_models::iaaf_points::{Category, Gender, Points, PointsSearchQueryParams};
 use axum::{
-    extract::{Path, Query, State}, http::StatusCode, response::{Html, IntoResponse}, Json
+    extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json
 };
 use serde_json;
 use crate::db_models::iaaf_points::{Category, Gender, PointsInsert, PointsSearchQueryParams};
@@ -131,14 +130,14 @@ pub async fn get_value(
 //     return points;
 // }
 
-async fn read_file_async() -> Result<Vec<Points>, Box<dyn Error>> {
+async fn read_file_async() -> Result<Vec<PointsInsert>, Box<dyn Error>> {
     println!("Reading json file.");
     let file = File::open(FILE_LOCATION).await?;
     let mut reader = BufReader::new(file);
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer).await?;
 
-    let points: Vec<Points> = serde_json::from_slice(&buffer)?;
+    let points: Vec<PointsInsert> = serde_json::from_slice(&buffer)?;
 
     Ok(points)
 }
