@@ -20,8 +20,10 @@
             </div>
 
             <div class="flex flex-row justify-left w-full">
-                <form hx-post="http://localhost:7878/api/world-aths/points/{select1}/{select2}/{select3}"
-                    hx-trigger="submit">
+                <form hx-get="http://localhost:7878/pages/points/Outdoor/Male/100m?mark=10.44"
+                    hx-trigger="change" 
+                    hx-refresh="#points_list"
+                    hx-update="#points_list">
                     <label for="select1">Category:</label>
                     <select id="select1" name="select1">
                         <option value="Outdoor">Outdoor</option>
@@ -34,15 +36,18 @@
                     </select>
                     <label for="select3">Event:</label>
                     <select id="select3" name="select3">
-                        <option value="200m">200m</option>
                         <option value="100m">100m</option>
-                        <!-- Add more options as needed -->
+                        <option value="200m">200m</option>
+                        <option value="400m">400m</option>
+                        <option value="800m">800m</option>
+                        <option value="1500m">1500m</option>
+                        <option value="100mh">100mh</option>
+                        <option value="110mh">110mh</option>
                     </select>
                     <label for="mark">Mark:</label>
-                    <input type="text" id="mark" name="mark" value="21.93">
+                    <input type="text" id="mark" name="mark">
                     <button type="submit">Submit</button>
-                </form>
-                
+                </form>      
                 <ul class="flex flex-col items-center divide-y w-full" id="points_list">
                     {% for point in points_list %}
                     {{ point|safe }}

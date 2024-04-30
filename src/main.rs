@@ -10,6 +10,7 @@ mod pages;
 mod controllers;
 mod db;
 mod db_models;
+mod req_models;
 
 #[tokio::main]
 async fn main() {

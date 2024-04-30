@@ -1,17 +1,18 @@
-CREATE TABLE IF NOT EXISTS todo (
+CREATE TABLE IF NOT EXISTS todos (
     id SERIAL PRIMARY KEY NOT NULL,
     text VARCHAR(255) NOT NULL,
     done BOOLEAN default false NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS users (
-    contact_id uuid DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_name VARCHAR NOT NULL,
     first_name VARCHAR NOT NULL,
     last_name VARCHAR NOT NULL,
     email VARCHAR NOT NULL,
     phone VARCHAR,
-    password VARCHAR,
-    PRIMARY KEY (contact_id)
+    active BOOLEAN,
+    password VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS points (

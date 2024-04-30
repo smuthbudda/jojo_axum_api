@@ -19,3 +19,7 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 askama = "0.12.1"
 validator = "0.18.1"
+axum-login = "0.15.1"
+pwhash = "1"
+[dependencies.uuid]
+features = ["serde"]

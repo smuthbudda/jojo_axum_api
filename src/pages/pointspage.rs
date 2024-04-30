@@ -1,18 +1,17 @@
 #![allow(dead_code)]
-use crate::db_models::iaaf_points::{Category, Gender, Points, PointsSearchQueryParams};
+use crate::db_models::iaaf_points::{Category, Gender, PointsDTO, PointsInsert, PointsSearchQueryParams};
 use askama::Template;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{Html, IntoResponse},
-    Json,
 };
 use sqlx::PgPool;
 
 #[derive(Template)]
 #[template(path = "pointsindex.html")]
 struct IndexTemplate {
-    points_list: Vec<Points>,
+    points_list: Vec<PointsInsert>,
 }
 
 pub async fn index(axum::extract::State(_pool): axum::extract::State<PgPool>) -> impl IntoResponse {
@@ -26,7 +25,7 @@ pub async fn index(axum::extract::State(_pool): axum::extract::State<PgPool>) ->
 #[derive(Template)]
 #[template(path = "components/point.html")]
 struct PointsTemplate {
-    id: String,
+    id: i32,
     points: i32,
     gender: String,
     category: String,
@@ -39,7 +38,7 @@ pub async fn get_points(
     Query(params): Query<PointsSearchQueryParams>,
     State(pool): State<PgPool>,
 ) -> impl IntoResponse {
-    let query_result = sqlx::query_as::<_, Points>(
+    let query_result = sqlx::query_as::<_, PointsDTO>(
         r#"
     SELECT * FROM points 
     WHERE 
@@ -61,9 +60,9 @@ pub async fn get_points(
     .fetch_one(&pool)
     .await;
 
-    let point_result = query_result.unwrap();
+    let point_result: PointsDTO = query_result.unwrap();
     let template: PointsTemplate = PointsTemplate {
-        id: "123".to_owned(),
+        id: point_result.id,
         points: point_result.points,
         gender: point_result.gender,
         category: point_result.category,

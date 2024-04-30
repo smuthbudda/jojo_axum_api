@@ -4,7 +4,7 @@ use axum::{
     response::{Html, IntoResponse},
     Json,
 };
-use crate::db_models::iaaf_points::{Category, Gender, Points, PointsSearchQueryParams};
+use crate::db_models::iaaf_points::{Category, Gender, PointsInsert, PointsSearchQueryParams};
 use sqlx::PgPool;
 
 static FILE_LOCATION: &str = "data/WorldAthletics.json";
@@ -63,7 +63,7 @@ pub async fn get_value(
         return Err((StatusCode::NOT_FOUND, Json(bad_json)));
     }
     
-    let query_result = sqlx::query_as::<_, Points>(
+    let query_result = sqlx::query_as::<_, PointsInsert>(
         r#"
     SELECT * FROM points 
     WHERE 
@@ -82,7 +82,7 @@ pub async fn get_value(
     .bind(event)
     .bind(params.mark)
     .bind(params.points)
-    .fetch_all(&pool)
+    .fetch_optional(&pool)
     .await
     .map_err(|e| {
         let error_response = serde_json::json!({
@@ -93,18 +93,16 @@ pub async fn get_value(
     })?;
 
     let json_response = serde_json::json!({
-        "status": "ok",
-        "count": query_result.len(),
         "points": query_result
     });
 
     Ok(Json(json_response))
 }
 
-fn read_from_file() -> Vec<Points> {
+fn read_from_file() -> Vec<PointsInsert> {
     println!("Reading json file.");
     let file = std::fs::File::open(FILE_LOCATION).expect("Could not open file");
-    let points: Vec<Points> = serde_json::from_reader(file).expect("error reading from file");
+    let points: Vec<PointsInsert> = serde_json::from_reader(file).expect("error reading from file");
 
     return points;
 }

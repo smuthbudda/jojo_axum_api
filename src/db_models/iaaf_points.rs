@@ -6,7 +6,8 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 #[serde(rename_all = "PascalCase")]
-pub struct Points {
+pub struct PointsDTO {
+    pub id: i32,
     pub points: i32,
     pub gender: String,
     pub category: String,
@@ -14,7 +15,17 @@ pub struct Points {
     pub mark: f64,
 }
 
-impl Points {
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "PascalCase")]
+pub struct PointsInsert {
+    pub points: i32,
+    pub gender: String,
+    pub category: String,
+    pub event: String,
+    pub mark: f64,
+}
+
+impl PointsInsert {
     pub fn new(points: i32, gender: String, category: String, event: String, mark: f64) -> Self {
         Self {
             points,
@@ -25,7 +36,8 @@ impl Points {
         }
     }
 }
-impl fmt::Display for Points {
+
+impl fmt::Display for PointsInsert {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }

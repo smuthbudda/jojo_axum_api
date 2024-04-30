@@ -1,24 +1,38 @@
-use sqlx::types::Uuid;
+use std::collections::HashMap;
+use axum::async_trait;
+use axum_login::{AuthnBackend, UserId};
+use serde::{Deserialize, Serialize};
+use sqlx::{types::Uuid, PgPool};
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Default, Debug, Clone, PartialEq, sqlx::FromRow, Eq)]
 pub struct User {
-    contact_id: Uuid,
-    first_name: String,
-    last_name: String,
-    email: String,
-    phone: Option<String>,
+    id: Uuid,
+    pub first_name: String,
+    pub last_name: String,
+    pub user_name: String,
+    pub email: String,
+    pub phone: Option<String>,
     password: String,
 }
 
 impl User {
-    pub fn new(contact_id: sqlx::types::Uuid, first_name: String, last_name: String, email: String, phone: Option<String>, password: String) -> Self {
-        Self {
-            contact_id,
-            first_name,
-            last_name,
-            email,
-            phone,
-            password,
-        }
+    pub fn get_hash(&self) -> &String {
+        &self.password
     }
 }
+
+impl axum_login::AuthUser for User {
+    type Id = Uuid;
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
+
+    fn session_auth_hash(&self) -> &[u8] {
+        self.password.as_bytes() // We use the password hash as the auth
+                                 // hash--what this means
+                                 // is when the user changes their password the
+                                 // auth session becomes invalid.
+    }
+}
+
