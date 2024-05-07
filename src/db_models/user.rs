@@ -1,14 +1,15 @@
+use chrono::prelude::*;
+use serde::{Deserialize, Serialize};
 
-
-#[derive(Default, Debug, Clone, PartialEq, sqlx::FromRow, Eq)]
+#[derive(Default, Debug, Clone, PartialEq,  Deserialize, sqlx::FromRow, Serialize, Eq)]
 pub struct User {
-    id: uuid::Uuid,
+    pub id: uuid::Uuid,
     pub first_name: String,
     pub last_name: String,
     pub user_name: String,
     pub email: String,
     pub phone: Option<String>,
-    password: String,
+    password: String
 }
 
 impl User {
@@ -18,7 +19,7 @@ impl User {
 }
 
 impl axum_login::AuthUser for User {
-    type Id = Uuid;
+    type Id = uuid::Uuid;
 
     fn id(&self) -> Self::Id {
         self.id

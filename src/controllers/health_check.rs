@@ -1,7 +1,11 @@
 #![allow(dead_code)]
 
-use axum::response::Html;
+use std::sync::Arc;
 
-pub async fn health_check(axum::extract::State(_pool): axum::extract::State<sqlx::PgPool>) -> Html<&'static str> {
-    Html("<h1>The API is up and running!</h1>")
+use axum::{extract::State, response::Html};
+
+use super::routes::AppState;
+
+pub async fn health_check(State(_data): State<Arc<AppState>>) -> Html<&'static str> {
+    Html("The API is up and running!")
 }

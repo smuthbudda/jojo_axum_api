@@ -4,15 +4,17 @@ use axum::{
 use serde_json;
 use crate::db_models::iaaf_points::{Category, Gender, PointsInsert, PointsSearchQueryParams};
 use sqlx::PgPool;
-use std::error::Error;
+use std::{error::Error, sync::Arc};
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, BufReader};
 
+use super::routes::AppState;
+
 static FILE_LOCATION: &str = "data/WorldAthletics.json";
 
-pub async fn read_iaaf_json(State(pool): State<PgPool>) -> Result<impl IntoResponse, (axum::http::StatusCode, Json<serde_json::Value>)>{
+pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl IntoResponse, (axum::http::StatusCode, Json<serde_json::Value>)>{
     let count: i64 = sqlx::query_scalar(r#"SELECT COUNT(id) FROM points"#)
-        .fetch_one(&pool)
+        .fetch_one(&data.db)
         .await
         .unwrap();
 
@@ -47,7 +49,7 @@ pub async fn read_iaaf_json(State(pool): State<PgPool>) -> Result<impl IntoRespo
                 .bind(&points_model.category)
                 .bind(&points_model.event)
                 .bind(points_model.mark)
-                .execute(&pool)
+                .execute(&data.db)
                 .await;
 
                 match query_result {
@@ -75,7 +77,7 @@ pub async fn read_iaaf_json(State(pool): State<PgPool>) -> Result<impl IntoRespo
 pub async fn get_value(
     Path((category, gender, event)): Path<(Category, Gender, String)>,
     Query(params): Query<PointsSearchQueryParams>,
-    State(pool): State<PgPool>,
+    State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     if (params.mark.is_some() && params.points.is_some())
         || (params.mark.is_none() && params.points.is_none())
@@ -105,7 +107,7 @@ pub async fn get_value(
     .bind(event)
     .bind(params.mark)
     .bind(params.points)
-    .fetch_optional(&pool)
+    .fetch_optional(&data.db)
     .await
     .map_err(|e| {
         let error_response = serde_json::json!({

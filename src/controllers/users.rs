@@ -1,15 +1,23 @@
+use std::sync::Arc;
+
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{header, HeaderMap, Response, StatusCode},
     response::IntoResponse,
     Json,
 };
+use axum_extra::extract::cookie::{Cookie, SameSite};
 use pwhash::bcrypt;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use serde_json::json;
 use uuid::Uuid;
 
-use crate::req_models::user_req::{CreateUserRequest, UserResponse};
+use crate::{
+    db_models::user::User,
+    req_models::user_req::CreateUserRequest,
+};
+
+use super::{routes::AppState, token::{self, TokenDetails}};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[allow(non_snake_case)]
@@ -19,7 +27,7 @@ pub struct LoginRequest {
 }
 
 pub async fn get_users_handler(
-    State(_pool): State<PgPool>,
+    State(_data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     // let users = vec![
     //     CreateUserRequest::create_user(1, "John".to_string(), "Doe".to_string()),
@@ -34,16 +42,16 @@ pub async fn get_users_handler(
 }
 
 pub async fn create_user_handler(
-    State(pool): State<PgPool>,
+    State(data): State<Arc<AppState>>,
     Json(req): Json<CreateUserRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let user: Option<crate::db_models::user::User> = sqlx::query_as(
+    let user: Option<User> = sqlx::query_as(
         r#"SELECT * FROM users 
                 WHERE user_name = $1
                 FETCH FIRST 1 ROWS ONLY"#,
     )
     .bind(&req.user_name)
-    .fetch_optional(&pool)
+    .fetch_optional(&data.db)
     .await
     .map_err(|e| {
         let error_response = serde_json::json!({
@@ -70,7 +78,7 @@ pub async fn create_user_handler(
     .bind(req.email)
     .bind(req.phone)
     .bind(hash)
-    .execute(&pool)
+    .execute(&data.db)
     .await;
 
     match insert_result {
@@ -85,7 +93,7 @@ pub async fn create_user_handler(
 }
 
 pub async fn login_handler(
-    State(pool): State<PgPool>,
+    State(data): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let user: Option<crate::db_models::user::User> = sqlx::query_as(
@@ -94,7 +102,7 @@ pub async fn login_handler(
                 FETCH FIRST 1 ROWS ONLY"#,
     )
     .bind(&req.user_name)
-    .fetch_optional(&pool)
+    .fetch_optional(&data.db)
     .await
     .map_err(|e| {
         let error_response = serde_json::json!({
@@ -105,43 +113,92 @@ pub async fn login_handler(
     })?;
 
     if user.is_none() {
-        return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"status":"Error user not found."}))));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"status":"Error user not found."})),
+        ));
     }
 
     let user = user.unwrap();
 
     let is_match = bcrypt::verify(&req.password, &user.get_hash());
 
-    match is_match {
-        true => {
-            let response = UserResponse::new(
-                user.first_name,
-                user.last_name,
-                user.email,
-                user.phone,
-                user.user_name,
-            );
-            let json_response = serde_json::json!({
-                "user": response
-            });
-            Ok(Json(serde_json::json!(json_response)))
-        }
-        false => Result::Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"status":"Invalid Password"})))),
+    if !is_match {
+        let error_response = serde_json::json!({
+            "status": "fail",
+            "message": "Invalid email or password"
+        });
+        return Err((StatusCode::BAD_REQUEST, Json(error_response)));
     }
+    let access_token_details = generate_token(
+        user.id,
+        data.env.access_token_max_age,
+        data.env.access_token_private_key.to_owned(),
+    )?;
+    let refresh_token_details = generate_token(
+        user.id,
+        data.env.refresh_token_max_age,
+        data.env.refresh_token_private_key.to_owned(),
+    )?;
+
+    let access_cookie = Cookie::build((
+        "access_token",
+        access_token_details.token.clone().unwrap_or_default(),
+    ))
+    .path("/")
+    .max_age(time::Duration::minutes(data.env.access_token_max_age * 60))
+    .same_site(SameSite::Lax)
+    .http_only(true);
+
+    let refresh_cookie = Cookie::build((
+        "refresh_token",
+        refresh_token_details.token.unwrap_or_default(),
+    ))
+    .path("/")
+    .max_age(time::Duration::minutes(data.env.refresh_token_max_age * 60))
+    .same_site(SameSite::Lax)
+    .http_only(true);
+
+    let logged_in_cookie = Cookie::build(("logged_in", "true"))
+        .path("/")
+        .max_age(time::Duration::minutes(data.env.access_token_max_age * 60))
+        .same_site(SameSite::Lax)
+        .http_only(false);
+
+    let mut response = Response::new(
+        json!({"status": "success", "access_token": access_token_details.token.unwrap()})
+            .to_string(),
+    );
+    let mut headers = HeaderMap::new();
+    headers.append(
+        header::SET_COOKIE,
+        access_cookie.to_string().parse().unwrap(),
+    );
+    headers.append(
+        header::SET_COOKIE,
+        refresh_cookie.to_string().parse().unwrap(),
+    );
+    headers.append(
+        header::SET_COOKIE,
+        logged_in_cookie.to_string().parse().unwrap(),
+    );
+
+    response.headers_mut().extend(headers);
+    
+    Ok(response)
 }
 
-fn hash_password(password: &str) -> String {
-    bcrypt::hash(password).unwrap()
-}
-
-pub async fn get_user_details(Path(id): Path<Uuid>, State(pool): State<PgPool>) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)>  {
+pub async fn get_user_details_handler(
+    Path(id): Path<Uuid>,
+    State(data): State<Arc<AppState>>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let user: Option<crate::db_models::user::User> = sqlx::query_as(
         r#"SELECT * FROM users 
                 WHERE id = $1
                 FETCH FIRST 1 ROWS ONLY"#,
     )
     .bind(id)
-    .fetch_optional(&pool)
+    .fetch_optional(&data.db)
     .await
     .map_err(|e| {
         let error_response = serde_json::json!({
@@ -157,3 +214,22 @@ pub async fn get_user_details(Path(id): Path<Uuid>, State(pool): State<PgPool>) 
 
     Ok(Json(serde_json::json!({"status":"Not Found"})))
 }
+
+fn hash_password(password: &str) -> String {
+    bcrypt::hash(password).unwrap()
+}
+
+fn generate_token(
+    user_id: uuid::Uuid,
+    max_age: i64,
+    private_key: String,
+) -> Result<TokenDetails, (StatusCode, Json<serde_json::Value>)> {
+    token::generate_jwt_token(user_id, max_age, private_key).map_err(|e| {
+        let error_response = serde_json::json!({
+            "status": "error",
+            "message": format!("error generating token: {}", e),
+        });
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
+    })
+}
+
