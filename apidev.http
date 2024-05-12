@@ -1,0 +1,40 @@
+###
+POST http://localhost:50000/api/user HTTP/1.1
+content-type: application/json
+
+{
+    "first_name": "John",
+    "last_name": "Doe",
+    "user_name": "johndoe",
+    "email": "john.doe@example.com",
+    "phone": "123-456-7890",
+    "password": "password123"
+}
+
+###
+POST http://localhost:50000/api/user/login HTTP/1.1
+content-type: application/json
+
+{
+    "user_name": "johndoe",
+    "password" : "password123"
+}
+
+###
+GET http://localhost:50000/api/health-check/check HTTP/1.1
+
+###
+GET http://localhost:50000/api/world-aths/read HTTP/1.1
+
+###
+GET http://localhost:50000/api/world-aths/points/Outdoor/Male/200m?mark=21.98 HTTP/1.1
+
+###
+GET http://localhost:50000/api/world-aths/points/Outdoor/Male/100m?mark=10.44 HTTP/1.1
+
+
+
+# ###Default
+# GET http://localhost:7878/pages/points HTTP/1.1
+# ###
+# GET http://localhost:7878/pages/points/Outdoor/Male/100m?mark=10.44 HTTP/1.1

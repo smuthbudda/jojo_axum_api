@@ -1,8 +1,11 @@
+use crate::db_models::iaaf_points::{Category, Gender, PointsInsert, PointsSearchQueryParams};
 use axum::{
-    extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
 };
 use serde_json;
-use crate::db_models::iaaf_points::{Category, Gender, PointsInsert, PointsSearchQueryParams};
 use sqlx::PgPool;
 use std::{error::Error, sync::Arc};
 use tokio::fs::File;
@@ -12,7 +15,9 @@ use super::routes::AppState;
 
 static FILE_LOCATION: &str = "data/WorldAthletics.json";
 
-pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl IntoResponse, (axum::http::StatusCode, Json<serde_json::Value>)>{
+pub async fn read_iaaf_json_handler(
+    State(data): State<Arc<AppState>>,
+) -> Result<impl IntoResponse, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let count: i64 = sqlx::query_scalar(r#"SELECT COUNT(id) FROM points"#)
         .fetch_one(&data.db)
         .await
@@ -21,25 +26,18 @@ pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl In
     let mut json_response = serde_json::json!({
         "Message": "Points Already Exists"
     });
-    
-    if count > 200000 {      
+
+    if count > 200000 {
         return Err((StatusCode::BAD_REQUEST, Json(json_response)));
     }
 
     let models = read_file_async().await;
 
     match models {
-        Err(e) => {
-            let error = "Error: ".to_string() + &e.to_string();
-            json_response = serde_json::json!({
-                "Message": error
-            });
-            return Ok(Json(json_response));
-        },
         Ok(_) => {
             print!("inserting into database");
             let mut count = 0;
-            for points_model in models.unwrap(){
+            for points_model in models.unwrap() { //TODO: figure out why this does not work 
                 let query_result = sqlx::query(
                     r#"INSERT INTO points (points, gender, category, event, mark)
                             VALUES ($1, $2, $3, $4, $5)"#,
@@ -54,7 +52,6 @@ pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl In
 
                 match query_result {
                     Ok(_) => {
-                        println!("Insert successful!");
                         count += 1;
                     }
                     Err(err) => {
@@ -63,12 +60,19 @@ pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl In
                     }
                 }
             }
-            
+
             json_response = serde_json::json!({
                 "Status" : "Values Added!",
                 "Count" : count
             });
 
+            return Ok(Json(json_response));
+        }
+        Err(e) => {
+            let error = "Error: ".to_string() + &e.to_string();
+            json_response = serde_json::json!({
+                "Message": error
+            });
             return Ok(Json(json_response));
         }
     }
@@ -87,7 +91,7 @@ pub async fn get_value(
         });
         return Err((StatusCode::NOT_FOUND, Json(bad_json)));
     }
-    
+
     let query_result = sqlx::query_as::<_, PointsInsert>(
         r#"
     SELECT * FROM points 

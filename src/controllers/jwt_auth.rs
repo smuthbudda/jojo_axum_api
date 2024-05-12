@@ -1,11 +1,4 @@
 use std::sync::Arc;
-use axum::{
-    extract::State,
-    http::{header, Request, StatusCode},
-    middleware::Next,
-    response::IntoResponse,
-    Json, body::Body,
-};
 use axum_extra::extract::cookie::CookieJar;
 use serde::{Deserialize, Serialize};
 use redis::AsyncCommands;
