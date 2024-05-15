@@ -53,28 +53,28 @@ pub fn generate_jwt_token(
     Ok(token_details)
 }
 
-pub fn verify_jwt_token(
-    public_key: String,
-    token: &str,
-) -> Result<TokenDetails, jsonwebtoken::errors::Error> {
-    let bytes_public_key = general_purpose::STANDARD.decode(public_key).unwrap();
-    let decoded_public_key = String::from_utf8(bytes_public_key).unwrap();
+// pub fn verify_jwt_token(
+//     public_key: String,
+//     token: &str,
+// ) -> Result<TokenDetails, jsonwebtoken::errors::Error> {
+//     let bytes_public_key = general_purpose::STANDARD.decode(public_key).unwrap();
+//     let decoded_public_key = String::from_utf8(bytes_public_key).unwrap();
 
-    let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
+//     let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
 
-    let decoded = jsonwebtoken::decode::<TokenClaims>(
-        token,
-        &jsonwebtoken::DecodingKey::from_rsa_pem(decoded_public_key.as_bytes())?,
-        &validation,
-    )?;
+//     let decoded = jsonwebtoken::decode::<TokenClaims>(
+//         token,
+//         &jsonwebtoken::DecodingKey::from_rsa_pem(decoded_public_key.as_bytes())?,
+//         &validation,
+//     )?;
 
-    let user_id = Uuid::parse_str(decoded.claims.sub.as_str()).unwrap();
-    let token_uuid = Uuid::parse_str(decoded.claims.token_uuid.as_str()).unwrap();
+//     let user_id = Uuid::parse_str(decoded.claims.sub.as_str()).unwrap();
+//     let token_uuid = Uuid::parse_str(decoded.claims.token_uuid.as_str()).unwrap();
 
-    Ok(TokenDetails {
-        token: None,
-        token_uuid,
-        user_id,
-        expires_in: None,
-    })
-}
+//     Ok(TokenDetails {
+//         token: None,
+//         token_uuid,
+//         user_id,
+//         expires_in: None,
+//     })
+// }

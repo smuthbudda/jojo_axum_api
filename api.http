@@ -27,6 +27,9 @@ GET http://localhost:7878/api/health-check/check HTTP/1.1
 GET http://localhost:7878/api/world-aths/read HTTP/1.1
 
 ###
+GET http://localhost:7878/api/system/cpu HTTP/1.1
+
+###
 GET http://localhost:7878/api/world-aths/points/Outdoor/Male/200m?mark=21.98 HTTP/1.1
 
 ###

@@ -3,7 +3,6 @@ use axum::{
 };
 use serde_json;
 use crate::db_models::iaaf_points::{Category, Gender, PointsInsert, PointsSearchQueryParams};
-use sqlx::PgPool;
 use std::{error::Error, sync::Arc};
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, BufReader};
@@ -26,7 +25,7 @@ pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl In
         return Err((StatusCode::BAD_REQUEST, Json(json_response)));
     }
 
-    let models = read_file_async().await;
+    let models: Result<Vec<PointsInsert>, Box<dyn Error>> = read_file_async().await;
 
     match models {
         Err(e) => {
