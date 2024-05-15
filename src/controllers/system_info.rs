@@ -15,13 +15,6 @@ use tokio::{sync::broadcast, task};
 
 use super::routes::AppState;
 
-pub async fn realtime_cpu_handler(
-    ws: WebSocketUpgrade,
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    ws.on_upgrade(|socket| async { web_socket(socket, state).await })
-}
-
 pub async fn get_system_details_handler(
     State(_state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, (axum::http::StatusCode, Json<serde_json::Value>)> {
@@ -32,7 +25,11 @@ pub async fn get_system_details_handler(
     let total_memory: u64 = sys.total_memory();
     let os: String = System::os_version().unwrap_or_default();
     let cpu = sys.cpus().first().unwrap();
-    let cpu_info = CPUInfo{name: cpu.name().to_string(), brand: cpu.brand().to_string(), id: cpu.vendor_id().to_string()};
+    let cpu_info = CPUInfo {
+        name: cpu.name().to_string(),
+        brand: cpu.brand().to_string(),
+        id: cpu.vendor_id().to_string(),
+    };
 
     for disk in &Disks::new_with_refreshed_list() {
         let name: String = disk
@@ -49,10 +46,12 @@ pub async fn get_system_details_handler(
     return Ok(response);
 }
 
+pub async fn realtime_cpu_handler(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    ws.on_upgrade(|socket| async { web_socket(socket, state).await })
+}
+
 async fn web_socket(mut socket: WebSocket, state: Arc<AppState>) {
     let mut rx = state.tx.subscribe();
-
-    let cpu_info_task = task::spawn(gather_cpu_info(state.tx.clone()));
 
     while let Ok(msg) = rx.recv().await {
         socket
@@ -60,19 +59,40 @@ async fn web_socket(mut socket: WebSocket, state: Arc<AppState>) {
             .await
             .unwrap();
     }
-
-    cpu_info_task.abort();
 }
 
-async fn gather_cpu_info(tx: broadcast::Sender<super::routes::Snapshot>) {
-    let mut sys = System::new();
-    loop {
-        sys.refresh_cpu();
-        let v: Vec<f32> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
-        let _ = tx.send(v);
-        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-    }
-}
+// pub async fn realtime_cpu_handler(
+//     ws: WebSocketUpgrade,
+//     State(state): State<Arc<AppState>>,
+// ) -> impl IntoResponse {
+//     ws.on_upgrade(|socket| async { web_socket(socket, state).await })
+// }
+// async fn web_socket(mut socket: WebSocket, state: Arc<AppState>) {
+//     let mut rx = state.tx.subscribe();
+
+//     let cpu_info_task = task::spawn(gather_cpu_info(state.tx.clone()));
+
+//     while let Ok(msg) = rx.recv().await {
+//         socket
+//             .send(Message::Text(serde_json::to_string(&msg).unwrap()))
+//             .await
+//             .unwrap();
+//     }
+
+//     cpu_info_task.abort();
+// }
+
+// async fn gather_cpu_info(tx: broadcast::Sender<super::routes::Snapshot>) {
+//     let mut sys = System::new();
+//     loop {
+//         sys.refresh_cpu();
+//         let v: Vec<f32> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
+//         let _ = tx.send(v);
+//         tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+//         // let three_seconds = std::time::Duration::new(3, 0);
+//         // thread::sleep(three_seconds);
+//     }
+// }
 
 #[derive(Serialize)]
 pub struct SystemInfo {
@@ -80,7 +100,7 @@ pub struct SystemInfo {
     pub os: String,
     pub ram_total: u64,
     pub disks: Vec<String>,
-    //pub temps: Vec<SysComponent>, do that later 
+    //pub temps: Vec<SysComponent>, do that later
 }
 
 impl SystemInfo {
@@ -111,5 +131,5 @@ pub struct SysComponent {
 pub struct CPUInfo {
     pub name: String,
     pub brand: String,
-    pub id : String
+    pub id: String,
 }

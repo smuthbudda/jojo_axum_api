@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 use crate::controllers::routes::AppState;
-use axum::{error_handling::HandleErrorLayer, http::{header::CONTENT_TYPE, Method}, middleware::map_request};
+use axum::http::{header::CONTENT_TYPE, Method};
 use sqlx::{Pool, Postgres};
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, thread};
+use sysinfo::{Cpu, System};
 use tokio::sync::broadcast;
 use tower_http::cors::{Any, CorsLayer};
 mod config;
@@ -36,6 +37,18 @@ async fn main() {
 
     let app = controllers::routes::create_router(app_state).layer(cors);
 
+    tokio::task::spawn_blocking(move || {
+        let mut sys = System::new();
+        loop {
+            sys.refresh_cpu();
+            let v: Vec<f32> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
+            let _ = tx.send(v);
+
+            let ten_millis = std::time::Duration::new(3, 0);
+            thread::sleep(ten_millis);
+        }
+    });
+    
     let listener = tokio::net::TcpListener::bind(&server_address)
         .await
         .unwrap();
