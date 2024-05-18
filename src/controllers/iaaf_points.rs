@@ -37,7 +37,7 @@ pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl In
         },
         Ok(_) => {
             print!("inserting into database");
-            let mut count = 0;
+            //There has to be a better way to insert 200000 records than individually. It takes so long. 
             for points_model in models.unwrap(){
                 let query_result = sqlx::query(
                     r#"INSERT INTO points (points, gender, category, event, mark)
@@ -53,19 +53,15 @@ pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl In
 
                 match query_result {
                     Ok(_) => {
-                        println!("Insert successful!");
-                        count += 1;
                     }
                     Err(err) => {
                         println!("Error: {}", err);
-                        // html = "Insert fail"
                     }
                 }
             }
             
             json_response = serde_json::json!({
                 "Status" : "Values Added!",
-                "Count" : count
             });
 
             return Ok(Json(json_response));

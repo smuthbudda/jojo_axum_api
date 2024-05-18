@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use crate::controllers::routes::AppState;
-use axum::http::{header::CONTENT_TYPE, Method};
+use axum::http::{header::{AUTHORIZATION, CONTENT_TYPE}, Method};
 use sqlx::{Pool, Postgres};
 use std::{env, sync::Arc, thread};
 use sysinfo::{Cpu, System};
@@ -25,9 +25,9 @@ async fn main() {
     sqlx::migrate!().run(&connection_pool).await.unwrap();
 
     let cors = CorsLayer::new()
-        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS, Method::HEAD])
         .allow_origin(Any)
-        .allow_headers([CONTENT_TYPE]);
+        .allow_headers([CONTENT_TYPE, AUTHORIZATION]);
 
     let app_state = Arc::new(AppState {
         db: connection_pool.clone(),
