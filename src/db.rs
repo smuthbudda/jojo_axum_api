@@ -18,11 +18,3 @@ pub async fn connect_to_database() -> PgPool {
     };
     pool
 }
-
-pub fn map_db_err(err: sqlx::Error) -> (axum::http::StatusCode, String) {
-    tracing::error!("{}", err);
-    (
-        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-        err.to_string(),
-    )
-}

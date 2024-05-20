@@ -1,13 +1,18 @@
-#![allow(dead_code)]
-use crate::controllers::routes::AppState;
-use axum::http::{header::{AUTHORIZATION, CONTENT_TYPE}, Method};
+use crate::routes::routes::AppState;
+use axum::http::{
+    header::{AUTHORIZATION, CONTENT_TYPE},
+    Method,
+};
+use moka::future::Cache;
 use sqlx::{Pool, Postgres};
-use std::{env, sync::Arc, thread};
-use sysinfo::{Cpu, System};
+use uuid::Uuid;
+use std::{env, sync::Arc, thread, time::Duration};
+use sysinfo::System;
 use tokio::sync::broadcast;
 use tower_http::cors::{Any, CorsLayer};
+
 mod config;
-mod controllers;
+mod routes;
 mod db;
 mod db_models;
 mod req_models;
@@ -18,14 +23,26 @@ async fn main() {
     let config = config::Config::init();
     let server_address = env::var("SERVER_ADDRESS").unwrap_or("127.0.0.1:3000".to_owned());
     let connection_pool: Pool<Postgres> = db::connect_to_database().await;
-    let (tx, _) = broadcast::channel::<controllers::routes::Snapshot>(1);
+    let (tx, _) = broadcast::channel::<routes::routes::Snapshot>(1);
+    let cache:Cache<Uuid, req_models::token::TokenDetails> = Cache::builder()
+        .max_capacity(50_000)
+        .time_to_live(Duration::from_secs(60 * 60 * 24))
+        .time_to_idle(Duration::from_secs(60 * 60 * 24))
+        .build();
 
     tracing_subscriber::fmt::init();
 
     sqlx::migrate!().run(&connection_pool).await.unwrap();
 
     let cors = CorsLayer::new()
-        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS, Method::HEAD])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+            Method::HEAD,
+        ])
         .allow_origin(Any)
         .allow_headers([CONTENT_TYPE, AUTHORIZATION]);
 
@@ -33,9 +50,10 @@ async fn main() {
         db: connection_pool.clone(),
         env: config.clone(),
         tx: tx.clone(),
+        cache: cache.clone(),
     });
 
-    let app = controllers::routes::create_router(app_state).layer(cors);
+    let app = routes::routes::create_router(app_state).layer(cors);
 
     tokio::task::spawn_blocking(move || {
         let mut sys = System::new();
@@ -48,7 +66,7 @@ async fn main() {
             thread::sleep(ten_millis);
         }
     });
-    
+
     let listener = tokio::net::TcpListener::bind(&server_address)
         .await
         .unwrap();

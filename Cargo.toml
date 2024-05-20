@@ -29,5 +29,8 @@ pwhash = "1"
 time = "0.3.20"
 sysinfo = "0.30.12"
 once_cell = "1.8"
+moka = { version = "0.12.7", features = ["sync", "future"] }
+futures-util = "0.3"
+ahash = "0.8"
 [dependencies.uuid]
 features = ["serde"]

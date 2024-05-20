@@ -11,7 +11,6 @@ use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
 use sysinfo::{Disks, System};
-use tokio::{sync::broadcast, task};
 
 use super::routes::AppState;
 
