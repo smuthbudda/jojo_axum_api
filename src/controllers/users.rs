@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use axum_extra::extract::cookie::{Cookie, SameSite};
+use axum_extra::{extract::cookie::{Cookie, SameSite}, headers};
 use pwhash::bcrypt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -112,6 +112,8 @@ pub async fn login_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
     })?;
 
+
+
     if user.is_none() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -130,60 +132,18 @@ pub async fn login_handler(
         });
         return Err((StatusCode::BAD_REQUEST, Json(error_response)));
     }
+
     let access_token_details = generate_token(
         user.id,
         data.env.access_token_max_age,
         data.env.access_token_private_key.to_owned(),
     )?;
-    let refresh_token_details = generate_token(
-        user.id,
-        data.env.refresh_token_max_age,
-        data.env.refresh_token_private_key.to_owned(),
-    )?;
-
-    let access_cookie = Cookie::build((
-        "access_token",
-        access_token_details.token.clone().unwrap_or_default(),
-    ))
-    .path("/")
-    .max_age(time::Duration::minutes(data.env.access_token_max_age * 60))
-    .same_site(SameSite::Lax)
-    .http_only(true);
-
-    let refresh_cookie = Cookie::build((
-        "refresh_token",
-        refresh_token_details.token.unwrap_or_default(),
-    ))
-    .path("/")
-    .max_age(time::Duration::minutes(data.env.refresh_token_max_age * 60))
-    .same_site(SameSite::Lax)
-    .http_only(true);
-
-    let logged_in_cookie = Cookie::build(("logged_in", "true"))
-        .path("/")
-        .max_age(time::Duration::minutes(data.env.access_token_max_age * 60))
-        .same_site(SameSite::Lax)
-        .http_only(false);
 
     let mut response = Response::new(
         json!({"status": "success", "access_token": access_token_details.token.unwrap()})
             .to_string(),
     );
-    let mut headers = HeaderMap::new();
-    headers.append(
-        header::SET_COOKIE,
-        access_cookie.to_string().parse().unwrap(),
-    );
-    headers.append(
-        header::SET_COOKIE,
-        refresh_cookie.to_string().parse().unwrap(),
-    );
-    headers.append(
-        header::SET_COOKIE,
-        logged_in_cookie.to_string().parse().unwrap(),
-    );
 
-    response.headers_mut().extend(headers);
     
     Ok(response)
 }
