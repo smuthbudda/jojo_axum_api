@@ -14,7 +14,7 @@ use tower_http::cors::{Any, CorsLayer};
 mod config;
 mod routes;
 mod db;
-mod db_models;
+mod models;
 mod req_models;
 
 #[tokio::main]

@@ -4,10 +4,11 @@ use std::sync::Arc;
 use crate::req_models::token::TokenDetails;
 
 use super::{
+    auth::{login_handler, refresh_access_token_handler},
     iaaf_points::{get_value, read_iaaf_json},
     jwt_auth::auth,
     system_info::{get_system_details_handler, realtime_cpu_handler},
-    users::{create_user_handler, get_user_details_handler, get_users_handler, login_handler},
+    users::{create_user_handler, get_user_details_handler, get_users_handler},
 };
 
 use axum::{
@@ -33,9 +34,11 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
     let user_routes = Router::new()
         .route("/", get(get_users_handler))
         .route("/", post(create_user_handler))
-        .route("/login", post(login_handler))
-        .route("/me", get(get_user_details_handler))
-        .route_layer(middleware::from_fn_with_state(app_state.clone(), auth));
+        .route(
+            "/me",
+            get(get_user_details_handler)
+                .route_layer(middleware::from_fn_with_state(app_state.clone(), auth)),
+        );
 
     let health_check_routes = Router::new().route("/check", get(super::health_check::health_check));
 
@@ -46,13 +49,18 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
     let system_routes = Router::new()
         .route("/cpu", get(realtime_cpu_handler)) //web socket
         .route("/details", get(get_system_details_handler));
+    
+    let auth_routes = Router::new()
+    .route("/refresh_token", get(refresh_access_token_handler))
+    .route("/login", post(login_handler));
 
     let router = Router::new()
         .nest("/user", user_routes)
         .nest("/health-check", health_check_routes)
         .nest("/world-aths", points_routes)
         .nest("/system", system_routes)
+        .nest("/auth", auth_routes)
         .with_state(app_state);
-
+    
     Router::new().nest("/api", router)
 }

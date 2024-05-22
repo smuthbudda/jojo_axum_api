@@ -1,5 +1,4 @@
 use super::{routes::AppState, utils::token};
-use crate::db_models::user::User;
 use axum::{
     body::Body,
     extract::State,
@@ -10,7 +9,9 @@ use axum::{
 };
 use axum_extra::extract::cookie::CookieJar;
 use serde::{Deserialize, Serialize};
+use sqlx::query_as;
 use std::sync::Arc;
+use crate::models::user::User;
 
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {
@@ -75,14 +76,15 @@ pub async fn auth(
             (StatusCode::UNAUTHORIZED, Json(error_response))
         })?;
 
-    let cache_token = data.cache.get(&access_token_uuid.clone()).await.unwrap();
+    let cache = &data.cache;
+    let cache_token = cache.get(&access_token_uuid).await;
 
-    let user: Option<crate::db_models::user::User> = sqlx::query_as(
+    let user: Option<User> = query_as(
         r#"SELECT * FROM users 
                 WHERE id = $1
                 FETCH FIRST 1 ROWS ONLY"#,
     )
-    .bind(cache_token.user_id)
+    .bind(cache_token.unwrap().user_id)
     .fetch_optional(&data.db)
     .await
     .map_err(|_| {
@@ -94,7 +96,7 @@ pub async fn auth(
     })?;
 
     let user = user.ok_or_else(|| {
-        let error_response = ErrorResponse {
+        let error_response: ErrorResponse = ErrorResponse {
             status: "fail",
             message: "The user belonging to this token no longer exists".to_string(),
         };

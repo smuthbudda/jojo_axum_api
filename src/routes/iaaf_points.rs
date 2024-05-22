@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json
 };
 use serde_json;
-use crate::db_models::iaaf_points::{Category, Gender, PointsInsert, PointsSearchQueryParams};
+use crate::models::iaaf_points::{Category, Gender, PointsInsert, PointsSearchQueryParams};
 use std::{error::Error, sync::Arc};
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, BufReader};
