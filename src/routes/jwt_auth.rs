@@ -1,4 +1,4 @@
-use super::{routes::AppState, utils::token};
+use super::{routes::AppState, utils::{constants::*, token}};
 use axum::{
     body::Body,
     extract::State,
@@ -32,7 +32,7 @@ pub async fn auth(
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let access_token = cookie_jar
-        .get("access_token")
+        .get(ACCESS_TOKEN)
         .map(|cookie| cookie.value().to_string())
         .or_else(|| {
             req.headers()
@@ -49,8 +49,8 @@ pub async fn auth(
 
     let access_token = access_token.ok_or_else(|| {
         let error_response = ErrorResponse {
-            status: "fail",
-            message: "You are not logged in, please provide token".to_string(),
+            status: RESPONSE_STATUS_FAIL,
+            message: NOT_LOGGED_IN.to_string(),
         };
         (StatusCode::UNAUTHORIZED, Json(error_response))
     })?;
@@ -60,24 +60,32 @@ pub async fn auth(
             Ok(token_details) => token_details,
             Err(e) => {
                 let error_response = ErrorResponse {
-                    status: "fail",
+                    status: RESPONSE_STATUS_FAIL,
                     message: format!("{:?}", e),
                 };
                 return Err((StatusCode::UNAUTHORIZED, Json(error_response)));
             }
         };
 
-    let access_token_uuid = uuid::Uuid::parse_str(&access_token_details.token_uuid.to_string())
+    let access_token_uuid = uuid::Uuid::parse_str(&saccess_token_details.token_uuid.to_string())
         .map_err(|_| {
             let error_response = ErrorResponse {
-                status: "fail",
-                message: "Invalid token".to_string(),
+                status: RESPONSE_STATUS_FAIL,
+                message: INVALID_TOKEN.to_string(),
             };
             (StatusCode::UNAUTHORIZED, Json(error_response))
         })?;
 
     let cache = &data.cache;
     let cache_token = cache.get(&access_token_uuid).await;
+
+    if cache_token.is_none(){
+        let error_response = ErrorResponse {
+            status: RESPONSE_STATUS_FAIL,
+            message: TOKEN_NOT_FOUND.to_string(),
+        };
+        return Err((StatusCode::UNAUTHORIZED, Json(error_response)))
+    }
 
     let user: Option<User> = query_as(
         r#"SELECT * FROM users 
@@ -89,16 +97,16 @@ pub async fn auth(
     .await
     .map_err(|_| {
         let error_response = ErrorResponse {
-            status: "fail",
-            message: "The user belonging to this token no longer exists".to_string(),
+            status: RESPONSE_STATUS_FAIL,
+            message: USER_NOT_FOUND.to_string(),
         };
         (StatusCode::UNAUTHORIZED, Json(error_response))
     })?;
 
     let user = user.ok_or_else(|| {
         let error_response: ErrorResponse = ErrorResponse {
-            status: "fail",
-            message: "The user belonging to this token no longer exists".to_string(),
+            status: RESPONSE_STATUS_FAIL,
+            message: USER_NOT_FOUND.to_string(),
         };
         (StatusCode::UNAUTHORIZED, Json(error_response))
     })?;

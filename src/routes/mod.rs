@@ -6,3 +6,4 @@ mod jwt_auth;
 mod system_info;
 mod utils;
 mod auth;
+mod database_functions;
