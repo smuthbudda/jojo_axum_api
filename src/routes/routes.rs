@@ -5,6 +5,7 @@ use crate::req_models::token::TokenDetails;
 
 use super::{
     auth::{login_handler, refresh_access_token_handler},
+    files::upload_file,
     iaaf_points::{get_value, read_iaaf_json},
     jwt_auth::auth,
     system_info::{get_system_details_handler, realtime_cpu_handler},
@@ -49,10 +50,12 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
     let system_routes = Router::new()
         .route("/cpu", get(realtime_cpu_handler)) //web socket
         .route("/details", get(get_system_details_handler));
-    
+
     let auth_routes = Router::new()
-    .route("/refresh_token", get(refresh_access_token_handler))
-    .route("/login", post(login_handler));
+        .route("/refresh_token", get(refresh_access_token_handler))
+        .route("/login", post(login_handler));
+
+    let file_routes = Router::new().route("/upload", post(upload_file));
 
     let router = Router::new()
         .nest("/user", user_routes)
@@ -61,6 +64,6 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .nest("/system", system_routes)
         .nest("/auth", auth_routes)
         .with_state(app_state);
-    
+
     Router::new().nest("/api", router)
 }

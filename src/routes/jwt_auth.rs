@@ -67,7 +67,7 @@ pub async fn auth(
             }
         };
 
-    let access_token_uuid = uuid::Uuid::parse_str(&saccess_token_details.token_uuid.to_string())
+    let access_token_uuid = uuid::Uuid::parse_str(&access_token_details.token_uuid.to_string())
         .map_err(|_| {
             let error_response = ErrorResponse {
                 status: RESPONSE_STATUS_FAIL,
