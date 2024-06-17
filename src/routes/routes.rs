@@ -63,6 +63,7 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .nest("/world-aths", points_routes)
         .nest("/system", system_routes)
         .nest("/auth", auth_routes)
+        .nest("/files", file_routes)
         .with_state(app_state);
 
     Router::new().nest("/api", router)
