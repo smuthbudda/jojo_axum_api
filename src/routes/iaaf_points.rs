@@ -1,9 +1,12 @@
+use crate::models::iaaf_points::{Category, Gender, PointsInsert, PointsSearchQueryParams};
 use axum::{
-    extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
 };
 use serde_json;
-use crate::models::iaaf_points::{Category, Gender, PointsInsert, PointsSearchQueryParams};
-use std::{error::Error, sync::Arc};
+use std::{error::Error, sync::Arc, time::SystemTime};
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, BufReader};
 
@@ -11,7 +14,9 @@ use super::routes::AppState;
 
 static FILE_LOCATION: &str = "data/WorldAthletics.json";
 
-pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl IntoResponse, (axum::http::StatusCode, Json<serde_json::Value>)>{
+pub async fn read_iaaf_json(
+    State(data): State<Arc<AppState>>,
+) -> Result<impl IntoResponse, (axum::http::StatusCode, Json<serde_json::Value>)> {
     let count: i64 = sqlx::query_scalar(r#"SELECT COUNT(id) FROM points"#)
         .fetch_one(&data.db)
         .await
@@ -20,8 +25,8 @@ pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl In
     let mut json_response = serde_json::json!({
         "Message": "Points Already Exists"
     });
-    
-    if count > 200000 {      
+
+    if count > 200000 {
         return Err((StatusCode::BAD_REQUEST, Json(json_response)));
     }
 
@@ -34,34 +39,40 @@ pub async fn read_iaaf_json(State(data): State<Arc<AppState>>) -> Result<impl In
                 "Message": error
             });
             return Ok(Json(json_response));
-        },
+        }
         Ok(_) => {
             print!("inserting into database");
-            //There has to be a better way to insert 200000 records than individually. It takes so long. 
-            for points_model in models.unwrap(){
-                let query_result = sqlx::query(
-                    r#"INSERT INTO points (points, gender, category, event, mark)
-                            VALUES ($1, $2, $3, $4, $5)"#,
-                )
-                .bind(points_model.points)
-                .bind(&points_model.gender)
-                .bind(&points_model.category)
-                .bind(&points_model.event)
-                .bind(points_model.mark)
-                .execute(&data.db)
-                .await;
+            //There has to be a better way to insert 200000 records than individually. It takes so long.
+            let models: Vec<PointsInsert> = models.unwrap_or_default();
 
-                match query_result {
-                    Ok(_) => {
-                    }
-                    Err(err) => {
-                        println!("Error: {}", err);
-                    }
+            let points: Vec<i32> = models.iter().map(|p| p.points).collect();
+            let genders: Vec<String> = models.iter().map(|p| p.gender.clone()).collect();
+            let categories: Vec<String> = models.iter().map(|p| p.category.clone()).collect();
+            let events: Vec<String> = models.iter().map(|p| p.event.clone()).collect();
+            let marks: Vec<f64> = models.iter().map(|p| p.mark).collect();
+            let start = SystemTime::now();
+            let query_result = sqlx::query(
+            r#"INSERT INTO points (points, gender, category, event, mark)
+                    SELECT * FROM UNNEST($1::INTEGER[], $2::VARCHAR(10)[], $3::VARCHAR(20)[], $4::VARCHAR(10)[], $5::Float[])"#,
+            )
+            .bind(points)
+            .bind(genders)
+            .bind(categories)
+            .bind(events)
+            .bind(marks)
+            .execute(&data.db)
+            .await;
+
+            match query_result {
+                Ok(_) => {}
+                Err(err) => {
+                    println!("Error: {}", err);
                 }
             }
-            
+
             json_response = serde_json::json!({
                 "Status" : "Values Added!",
+                "Time": start.elapsed().unwrap().as_secs_f32()
             });
 
             return Ok(Json(json_response));
@@ -82,7 +93,7 @@ pub async fn get_value(
         });
         return Err((StatusCode::NOT_FOUND, Json(bad_json)));
     }
-    
+
     let query_result = sqlx::query_as::<_, PointsInsert>(
         r#"
     SELECT * FROM points 
@@ -128,7 +139,6 @@ pub async fn get_value(
 // }
 
 async fn read_file_async() -> Result<Vec<PointsInsert>, Box<dyn Error>> {
-    println!("Reading json file.");
     let file = File::open(FILE_LOCATION).await?;
     let mut reader = BufReader::new(file);
     let mut buffer = Vec::new();

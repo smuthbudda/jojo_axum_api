@@ -29,7 +29,6 @@ async fn main() {
         .time_to_live(Duration::from_secs(60 * 60 * 24))
         .time_to_idle(Duration::from_secs(60 * 60 * 24))
         .build();
-
     tracing_subscriber::fmt::init();
 
     sqlx::migrate!().run(&connection_pool).await.unwrap();
