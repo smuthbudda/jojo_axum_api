@@ -1,5 +1,5 @@
 ###
-POST http://localhost:7878/api/user HTTP/1.1
+POST http://localhost:8080/api/user HTTP/1.1
 content-type: application/json
 
 {
@@ -12,16 +12,16 @@ content-type: application/json
 }
 
 ###
-POST http://localhost:7878/api/user/login HTTP/1.1
+POST http://localhost:8080/api/user/login HTTP/1.1
 content-type: application/json
 
 {
-    "user_name": "johndoe",
-    "password" : "password123"
+    "user_name": "jsamson",
+    "password" : "Jojo the 123!"
 }
 
 ###
-GET http://localhost:7878/api/health-check/check HTTP/1.1
+GET http://localhost:8080/api/health-check/check HTTP/1.1
 
 ###
 GET http://localhost:7878/api/world-aths/read HTTP/1.1
